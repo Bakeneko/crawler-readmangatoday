@@ -1,5 +1,6 @@
 'use strict'
 const requestp = require('request-promise')
+const hash = require('object-hash')
 const cheerio = require('cheerio')
 const utils = require('./utils')
 
@@ -11,6 +12,20 @@ class ReadMangaTodayCrawler {
   constructor (options) {
     options = options || {}
     this.userAgent = options.userAgent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.103 Safari/537.36'
+    this.cache = options.cache
+  }
+
+  async getCachedData (key) {
+    if (this.cache && key) {
+      return this.cache.get(key)
+    }
+    return null
+  }
+
+  async setCachedData (key, value) {
+    if (this.cache && key) {
+      this.cache.set(key, value)
+    }
   }
 
   async getMangaList () {
@@ -44,13 +59,24 @@ class ReadMangaTodayCrawler {
       'User-Agent': this.userAgent
     }
 
-    // send request
-    const $ = await requestp({
+    const req = {
       method: 'GET',
       uri: mangaListUrl + '/' + letter,
-      headers: headers,
-      transform: cheerio.load
-    })
+      headers: headers
+    }
+
+    let cacheKey = this.cache ? hash(req) : null
+
+    // check cache if any
+    let html = await this.getCachedData(cacheKey)
+
+    if (!html) {
+      // send request
+      html = await requestp(req)
+      await this.setCachedData(cacheKey, html)
+    }
+
+    const $ = cheerio.load(html)
 
     // parse results
     let mangas = []
@@ -116,13 +142,24 @@ class ReadMangaTodayCrawler {
       'User-Agent': this.userAgent
     }
 
-    // send request
-    const $ = await requestp({
+    const req = {
       method: 'GET',
       uri: releasesUrl + '/' + index,
-      headers: headers,
-      transform: cheerio.load
-    })
+      headers: headers
+    }
+
+    let cacheKey = this.cache ? hash(req) : null
+
+    // check cache if any
+    let html = await this.getCachedData(cacheKey)
+
+    if (!html) {
+      // send request
+      html = await requestp(req)
+      await this.setCachedData(cacheKey, html)
+    }
+
+    const $ = cheerio.load(html)
 
     // parse results
     let list = []
@@ -171,13 +208,24 @@ class ReadMangaTodayCrawler {
       'User-Agent': this.userAgent
     }
 
-    // send request
-    const $ = await requestp({
+    const req = {
       method: 'GET',
       uri: baseUrl + '/' + id,
-      headers: headers,
-      transform: cheerio.load
-    })
+      headers: headers
+    }
+
+    let cacheKey = this.cache ? hash(req) : null
+
+    // check cache if any
+    let html = await this.getCachedData(cacheKey)
+
+    if (!html) {
+      // send request
+      html = await requestp(req)
+      await this.setCachedData(cacheKey, html)
+    }
+
+    const $ = cheerio.load(html)
 
     // parse results
     let elem = $('div.content-list').first()
